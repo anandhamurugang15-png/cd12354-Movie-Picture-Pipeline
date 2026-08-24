@@ -6,7 +6,13 @@ on:
       - main
     paths:
       - 'starter/frontend/**'
+      - '.github/workflows/frontend-cd.yml'
   workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: frontend
+  ECR_REGISTRY: 842062273569.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
   test:
@@ -43,12 +49,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set frontend API URL
         run: echo "REACT_APP_MOVIE_API_URL=http://localhost:5000" >> "$GITHUB_ENV"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker image
         working-directory: starter/frontend
         run: |
           docker build \
             --build-arg REACT_APP_MOVIE_API_URL="$REACT_APP_MOVIE_API_URL" \
-            --tag mp-frontend:${{ github.sha }} .
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
