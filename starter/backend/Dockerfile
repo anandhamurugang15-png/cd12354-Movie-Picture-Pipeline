@@ -5,22 +5,19 @@ ENV FLASK_RUN_HOST=0.0.0.0
 WORKDIR /app
 
 RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    libffi-dev \
     pcre \
     pcre-dev \
+    build-base \
     linux-headers \
     openssl \
-    && pip install --no-cache-dir pipenv
+    libffi-dev
+
+RUN pip install --no-cache-dir pipenv
 
 COPY Pipfile Pipfile.lock ./
 
-RUN pipenv install --system
+RUN pipenv install --system --deploy
 
 COPY . .
 
-RUN adduser -D app
-USER app
-
-CMD ["uwsgi", "--http", ":5000", "--master", "--enable-threads", "-s", "/tmp/app.sock", "--manage-script-name", "--mount", "/=app:app"]
+CMD ["flask", "--app", ".", "run", "--host", "0.0.0.0", "--port", "5000"]
