@@ -1,10 +1,18 @@
-FROM python:3.10
+FROM public.ecr.aws/docker/library/python:3.10-alpine
 
 ENV FLASK_RUN_HOST=0.0.0.0
 
 WORKDIR /app
 
-RUN pip install pipenv
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    pcre \
+    pcre-dev \
+    linux-headers \
+    openssl \
+    && pip install --no-cache-dir pipenv
 
 COPY Pipfile Pipfile.lock ./
 
@@ -12,6 +20,7 @@ RUN pipenv install --system
 
 COPY . .
 
-RUN mkdir -p /var/www/app
+RUN adduser -D app
+USER app
 
-CMD ["uwsgi", "--http", ":5000", "--master", "--enable-threads", "-s", "/var/www/app/app.sock", "--manage-script-name", "--mount", "/=app:app"]
+CMD ["uwsgi", "--http", ":5000", "--master", "--enable-threads", "-s", "/tmp/app.sock", "--manage-script-name", "--mount", "/=app:app"]
